@@ -1,0 +1,13 @@
+// Add this to your ~/.config/niri/config.kdl
+
+binds {
+    // Windows 11 style shortcut
+    Mod+Shift+S hotkey-overlay-title="Win11 Snipping Bar" { spawn "win11-snip-bar"; }
+
+    // PrintScreen key
+    Print hotkey-overlay-title="Win11 Snipping Bar" { spawn "win11-snip-bar"; }
+
+    // Direct actions (optional shortcuts without opening the bar)
+    // Mod+Alt+S { spawn "win11-snip-bar" "--window"; }
+    // Ctrl+Print { spawn "win11-snip-bar" "--full"; }
+}

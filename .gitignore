@@ -1,0 +1,6 @@
+win11-snip-bar
+*.o
+*.png
+*.mp4
+/build/
+.vscode/
