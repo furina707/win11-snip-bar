@@ -48,6 +48,29 @@ case "$ACTION" in
         [ -n "$GEO" ] || exit 0
         notify_screenshot "$FILE"
         ;;
+    delay)
+        notify-send -a "截图工具" -t 3000 "⏱ 3秒延时截图已启动" "请在 3 秒内打开并悬停目标二级/右键菜单..."
+        sleep 3
+        canberra-gtk-play -i camera-shutter 2>/dev/null || true
+        FILE="$SAVE_DIR/Screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"
+        FREEZE_PID=""
+        if command -v wayfreeze >/dev/null 2>&1; then
+            wayfreeze &
+            FREEZE_PID=$!
+            trap '[ -n "$FREEZE_PID" ] && kill "$FREEZE_PID" 2>/dev/null || true' EXIT INT TERM
+            sleep 0.05
+        fi
+        GEO=$(slurp -b '#00000045' -c '#0078d4' -s '#0078d428' -w 2 2>/dev/null || true)
+        if [ -n "$GEO" ]; then
+            grim -g "$GEO" "$FILE"
+        fi
+        if [ -n "$FREEZE_PID" ]; then
+            kill "$FREEZE_PID" 2>/dev/null || true
+            FREEZE_PID=""
+        fi
+        [ -n "$GEO" ] || exit 0
+        notify_screenshot "$FILE"
+        ;;
     window)
         FILE="$SAVE_DIR/Screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"
 

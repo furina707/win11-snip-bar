@@ -11,6 +11,7 @@ typedef enum {
     ACTION_RECT,
     ACTION_WINDOW,
     ACTION_FULL,
+    ACTION_DELAY,
     ACTION_RECORD
 } SnipAction;
 
@@ -119,7 +120,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     gtk_layer_set_layer(win, GTK_LAYER_SHELL_LAYER_OVERLAY);
     gtk_layer_set_anchor(win, GTK_LAYER_SHELL_EDGE_TOP, TRUE);
     gtk_layer_set_margin(win, GTK_LAYER_SHELL_EDGE_TOP, 16);
-    gtk_layer_set_keyboard_mode(win, GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
+    gtk_layer_set_keyboard_mode(win, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE);
 
     // ESC to close
     GtkEventController *key_ctrl = gtk_event_controller_key_new();
@@ -148,6 +149,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
         {"⛶ 矩形", "矩形截图 (拖拽划选区域)", ACTION_RECT},
         {"🗔 窗口", "窗口截图 (鼠标悬停高亮边框并点击，无窗口时自动全屏)", ACTION_WINDOW},
         {"🖵 全屏", "全屏截图 (直接截取整个屏幕)", ACTION_FULL},
+        {"⏱ 3秒", "3秒延时截图 (点击后有3秒时间展开右键/二级菜单或悬停提示)", ACTION_DELAY},
     };
 
     for (size_t i = 0; i < sizeof(buttons)/sizeof(buttons[0]); i++) {
@@ -291,6 +293,7 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[1], "--rect") == 0) g_action = ACTION_RECT;
         else if (strcmp(argv[1], "--window") == 0) g_action = ACTION_WINDOW;
         else if (strcmp(argv[1], "--full") == 0) g_action = ACTION_FULL;
+        else if (strcmp(argv[1], "--delay") == 0) g_action = ACTION_DELAY;
         else if (strcmp(argv[1], "--record") == 0) g_action = ACTION_RECORD;
     }
 
@@ -313,6 +316,7 @@ int main(int argc, char **argv) {
         case ACTION_RECT: action_str = "rect"; break;
         case ACTION_WINDOW: action_str = "window"; break;
         case ACTION_FULL: action_str = "full"; break;
+        case ACTION_DELAY: action_str = "delay"; break;
         case ACTION_RECORD: action_str = "record"; break;
         default: return 0;
     }
