@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 
 ACTION="${1:-rect}"
 SAVE_DIR="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
@@ -29,9 +30,22 @@ notify_screenshot() {
 case "$ACTION" in
     rect)
         FILE="$SAVE_DIR/Screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"
+        FREEZE_PID=""
+        if command -v wayfreeze >/dev/null 2>&1; then
+            wayfreeze &
+            FREEZE_PID=$!
+            trap '[ -n "$FREEZE_PID" ] && kill "$FREEZE_PID" 2>/dev/null || true' EXIT INT TERM
+            sleep 0.05
+        fi
         GEO=$(slurp -b '#00000045' -c '#0078d4' -s '#0078d428' -w 2 2>/dev/null || true)
+        if [ -n "$GEO" ]; then
+            grim -g "$GEO" "$FILE"
+        fi
+        if [ -n "$FREEZE_PID" ]; then
+            kill "$FREEZE_PID" 2>/dev/null || true
+            FREEZE_PID=""
+        fi
         [ -n "$GEO" ] || exit 0
-        grim -g "$GEO" "$FILE"
         notify_screenshot "$FILE"
         ;;
     window)
@@ -95,9 +109,21 @@ except Exception:
         REC_DIR="${XDG_VIDEOS_DIR:-$HOME/Videos}/Captures"
         mkdir -p "$REC_DIR"
         REC_FILE="$REC_DIR/Recording_$(date +%Y-%m-%d_%H-%M-%S).mp4"
+        FREEZE_PID=""
+        if command -v wayfreeze >/dev/null 2>&1; then
+            wayfreeze &
+            FREEZE_PID=$!
+            trap '[ -n "$FREEZE_PID" ] && kill "$FREEZE_PID" 2>/dev/null || true' EXIT INT TERM
+            sleep 0.05
+        fi
         GEO=$(slurp -b '#00000066' -c '#ff5555' -w 2 2>/dev/null || true)
+        if [ -n "$FREEZE_PID" ]; then
+            kill "$FREEZE_PID" 2>/dev/null || true
+            FREEZE_PID=""
+        fi
         [ -n "$GEO" ] || exit 0
         wf-recorder -g "$GEO" -f "$REC_FILE" &
-        notify-send -a "屏幕录制" "已开始录屏" "录制完成后再次点击截图栏录屏按钮即可结束" -t 3000
+        # 启动 Windows 11 同款顶部悬浮录屏计时与停止控制器
+        win11-snip-bar --rec-bar &
         ;;
 esac
