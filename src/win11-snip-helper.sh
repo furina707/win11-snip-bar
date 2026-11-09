@@ -74,27 +74,7 @@ case "$ACTION" in
     window)
         FILE="$SAVE_DIR/Screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"
 
-        # 检查当前活动工作区是否存在可见窗口
-        WIN_COUNT=$(python3 -c '
-import json, subprocess
-try:
-    ws = json.loads(subprocess.check_output(["niri", "msg", "-j", "workspaces"]))
-    f_ws = next((w["id"] for w in ws if w.get("is_focused") or w.get("is_active")), None)
-    wins = json.loads(subprocess.check_output(["niri", "msg", "-j", "windows"]))
-    ws_wins = [w for w in wins if w.get("workspace_id") == f_ws]
-    print(len(ws_wins))
-except Exception:
-    print(1)
-' 2>/dev/null || echo 1)
-
-        if [ "$WIN_COUNT" -eq 0 ]; then
-            # 当前没有检测到任何打开的窗口，自动回退截取全屏
-            grim "$FILE"
-            notify_screenshot "$FILE" "全屏截图已复制（当前无可见窗口）"
-            exit 0
-        fi
-
-        # 优先使用专为 Niri 优化的智能吸附与原生窗口捕获工具 latchshot
+        # 优先使用专为 Niri 优化的智能吸附与原生窗口捕获工具 latchshot（完全由用户鼠标悬停点击选取，按 Esc/右键可取消）
         if command -v latchshot >/dev/null 2>&1; then
             if latchshot -o "$FILE" -c --no-notify; then
                 if [ -f "$FILE" ]; then
@@ -102,12 +82,12 @@ except Exception:
                 fi
                 exit 0
             else
-                # 用户按 Esc / 右键取消
+                # 用户按 Esc / 右键取消，不执行任何自动操作
                 exit 0
             fi
         fi
 
-        # 兜底：若 latchshot 不可用，调用 niri 原生 pick-window 与 screenshot-window
+        # 兜底：若 latchshot 不可用，调用 niri 原生 pick-window 与 screenshot-window（用户交互点击选取窗口）
         WIN_INFO=$(niri msg -j pick-window 2>/dev/null || true)
         if [ -n "$WIN_INFO" ]; then
             WIN_ID=$(echo "$WIN_INFO" | grep -oP '"id":\s*\K[0-9]+' | head -n 1)
