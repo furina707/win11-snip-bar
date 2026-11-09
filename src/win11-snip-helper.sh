@@ -10,21 +10,23 @@ notify_screenshot() {
     local file="$1"
     local title="${2:-截图已复制到剪贴板}"
     [ -f "$file" ] || return 0
-    # Copy to clipboard
+    # 立即复制到剪贴板，零延迟响应
     wl-copy < "$file"
     
-    # Notify with action
-    local action_res
-    action_res=$(notify-send -a "截图工具" -i "$file" "$title" "可直接 Ctrl+V 粘贴，或点击进行标注" -t 4000 --action="edit=✏️ 标注编辑" 2>/dev/null || true)
-    if [ "$action_res" = "edit" ]; then
-        if command -v satty >/dev/null 2>&1; then
-            satty -f "$file" --early-exit copy &
-        elif command -v loupe >/dev/null 2>&1; then
-            loupe "$file" &
-        else
-            xdg-open "$file" &
+    # 异步弹出通知与标注入口，绝不阻塞截图主流程
+    (
+        local action_res
+        action_res=$(notify-send -a "截图工具" -i "$file" "$title" "已保存至相册，可直接 Ctrl+V 粘贴" -t 3500 --action="edit=✏️ 标注编辑" 2>/dev/null || true)
+        if [ "$action_res" = "edit" ]; then
+            if command -v satty >/dev/null 2>&1; then
+                satty -f "$file" --early-exit copy &
+            elif command -v loupe >/dev/null 2>&1; then
+                loupe "$file" &
+            else
+                xdg-open "$file" &
+            fi
         fi
-    fi
+    ) &
 }
 
 case "$ACTION" in
@@ -32,20 +34,18 @@ case "$ACTION" in
         FILE="$SAVE_DIR/Screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"
         FREEZE_PID=""
         if command -v wayfreeze >/dev/null 2>&1; then
-            wayfreeze &
+            wayfreeze --hide-cursor &
             FREEZE_PID=$!
             trap '[ -n "$FREEZE_PID" ] && kill "$FREEZE_PID" 2>/dev/null || true' EXIT INT TERM
-            sleep 0.05
+            sleep 0.02
         fi
         GEO=$(slurp -b '#00000045' -c '#0078d4' -s '#0078d428' -w 2 2>/dev/null || true)
-        if [ -n "$GEO" ]; then
-            grim -g "$GEO" "$FILE"
-        fi
         if [ -n "$FREEZE_PID" ]; then
             kill "$FREEZE_PID" 2>/dev/null || true
             FREEZE_PID=""
         fi
         [ -n "$GEO" ] || exit 0
+        grim -l 1 -g "$GEO" "$FILE"
         notify_screenshot "$FILE"
         ;;
     delay)
@@ -55,39 +55,24 @@ case "$ACTION" in
         FILE="$SAVE_DIR/Screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"
         FREEZE_PID=""
         if command -v wayfreeze >/dev/null 2>&1; then
-            wayfreeze &
+            wayfreeze --hide-cursor &
             FREEZE_PID=$!
             trap '[ -n "$FREEZE_PID" ] && kill "$FREEZE_PID" 2>/dev/null || true' EXIT INT TERM
-            sleep 0.05
+            sleep 0.02
         fi
         GEO=$(slurp -b '#00000045' -c '#0078d4' -s '#0078d428' -w 2 2>/dev/null || true)
-        if [ -n "$GEO" ]; then
-            grim -g "$GEO" "$FILE"
-        fi
         if [ -n "$FREEZE_PID" ]; then
             kill "$FREEZE_PID" 2>/dev/null || true
             FREEZE_PID=""
         fi
         [ -n "$GEO" ] || exit 0
+        grim -l 1 -g "$GEO" "$FILE"
         notify_screenshot "$FILE"
         ;;
     window)
         FILE="$SAVE_DIR/Screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"
 
-        # 优先使用专为 Niri 优化的智能吸附与原生窗口捕获工具 latchshot（完全由用户鼠标悬停点击选取，按 Esc/右键可取消）
-        if command -v latchshot >/dev/null 2>&1; then
-            if latchshot -o "$FILE" -c --no-notify; then
-                if [ -f "$FILE" ]; then
-                    notify_screenshot "$FILE"
-                fi
-                exit 0
-            else
-                # 用户按 Esc / 右键取消，不执行任何自动操作
-                exit 0
-            fi
-        fi
-
-        # 兜底：若 latchshot 不可用，调用 niri 原生 pick-window 与 screenshot-window（用户交互点击选取窗口）
+        # 调用 Niri 官方原生 pick-window 与 screenshot-window（零延迟原生高亮与捕获，按 Esc/右键可取消）
         WIN_INFO=$(niri msg -j pick-window 2>/dev/null || true)
         if [ -n "$WIN_INFO" ]; then
             WIN_ID=$(echo "$WIN_INFO" | grep -oP '"id":\s*\K[0-9]+' | head -n 1)
@@ -97,6 +82,7 @@ case "$ACTION" in
                 exit 0
             fi
         fi
+        exit 0
         ;;
     full)
         FILE="$SAVE_DIR/Screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"

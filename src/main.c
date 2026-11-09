@@ -308,8 +308,8 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    // Wait 120ms so layer surface is completely dismissed from screen before capturing
-    usleep(120000);
+    // Wait 25ms so layer surface is unmapped cleanly before capturing
+    usleep(25000);
 
     const char *action_str = "";
     switch (g_action) {
