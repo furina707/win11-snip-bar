@@ -72,8 +72,25 @@ case "$ACTION" in
     window)
         FILE="$SAVE_DIR/Screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"
 
-        # 调用 Niri 官方原生 pick-window 与 screenshot-window（零延迟原生高亮与捕获，按 Esc/右键可取消）
-        WIN_INFO=$(niri msg -j pick-window 2>/dev/null || true)
+        # 发送提示：鼠标已进入窗口点选模式
+        notify-send -a "截图工具" -t 2500 "🗔 请点击目标窗口进行截取" "十字准星已激活，按 Esc 或右键可取消" 2>/dev/null || true
+
+        # 通过虚拟终端 PTY 唤起 Niri 原生 pick-window
+        # 避免无终端环境时被检测到 stdin EOF 导致瞬间判定截取当前焦点窗口
+        WIN_INFO=$(python3 -c '
+import pty, os, subprocess, sys
+try:
+    master, slave = pty.openpty()
+    p = subprocess.Popen(["niri", "msg", "-j", "pick-window"], stdin=slave, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+    os.close(slave)
+    out, _ = p.communicate()
+    os.close(master)
+    if p.returncode == 0 and out:
+        sys.stdout.buffer.write(out)
+except Exception:
+    pass
+' 2>/dev/null || true)
+
         if [ -n "$WIN_INFO" ]; then
             WIN_ID=$(echo "$WIN_INFO" | grep -oP '"id":\s*\K[0-9]+' | head -n 1)
             if [ -n "$WIN_ID" ]; then
